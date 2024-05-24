@@ -1,0 +1,186 @@
+{
+    "name": "Bronze_to_Silver",
+    "objectId": "9919ae5d-814d-4608-8b97-3bad7644d0db",
+    "properties": {
+        "activities": [
+            {
+                "name": "Month Lookup",
+                "type": "Lookup",
+                "dependsOn": [
+                    {
+                        "activity": "Notebook1",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "source": {
+                        "type": "LakehouseTableSource"
+                    },
+                    "firstRowOnly": false,
+                    "datasetSettings": {
+                        "annotations": [],
+                        "linkedService": {
+                            "name": "Silver",
+                            "properties": {
+                                "annotations": [],
+                                "type": "Lakehouse",
+                                "typeProperties": {
+                                    "workspaceId": "db568bf8-9fad-4078-bf39-3a44518b1af3",
+                                    "artifactId": "e5835360-83b2-4b7a-b3e1-c8212a8aa287",
+                                    "rootFolder": "Tables"
+                                }
+                            }
+                        },
+                        "type": "LakehouseTable",
+                        "schema": [],
+                        "typeProperties": {
+                            "table": "month_lookup"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "Notebook1",
+                "type": "TridentNotebook",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "notebookId": "1eac814e-d79c-4bb6-8b73-5b07ef63148e",
+                    "workspaceId": "db568bf8-9fad-4078-bf39-3a44518b1af3",
+                    "parameters": {
+                        "Year": {
+                            "value": {
+                                "value": "@pipeline().parameters.Year",
+                                "type": "Expression"
+                            },
+                            "type": "int"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "ForEach1",
+                "type": "ForEach",
+                "dependsOn": [
+                    {
+                        "activity": "Month Lookup",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "typeProperties": {
+                    "items": {
+                        "value": "@activity('Month Lookup').output.value",
+                        "type": "Expression"
+                    },
+                    "isSequential": true,
+                    "activities": [
+                        {
+                            "name": "Silver Data Load",
+                            "type": "TridentNotebook",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "0.12:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "typeProperties": {
+                                "notebookId": "a5fecb9a-13b1-42f9-b030-dbb233855594",
+                                "workspaceId": "db568bf8-9fad-4078-bf39-3a44518b1af3",
+                                "parameters": {
+                                    "table_name": {
+                                        "value": {
+                                            "value": "@pipeline().parameters.table_name",
+                                            "type": "Expression"
+                                        },
+                                        "type": "string"
+                                    },
+                                    "Year": {
+                                        "value": {
+                                            "value": "@pipeline().parameters.Year",
+                                            "type": "Expression"
+                                        },
+                                        "type": "string"
+                                    },
+                                    "month": {
+                                        "value": {
+                                            "value": "@item().month",
+                                            "type": "Expression"
+                                        },
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Office 365 Outlook1_copy1",
+                "type": "Office365Outlook",
+                "dependsOn": [
+                    {
+                        "activity": "ForEach1",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "typeProperties": {
+                    "inputs": {
+                        "method": "post",
+                        "path": "/v2/Mail",
+                        "body": {
+                            "To": "nhlanhlah@calybre.global",
+                            "Subject": "Pipeline Run",
+                            "Body": "<p>&nbsp;The pipeline @{pipeline().PipelineName} has loaded @{pipeline().parameters.Year} data from @{pipeline().parameters.month} to your lakehouse table storage.</p>\n<p><br></p>\n<p>Regards,</p>\n<p>me&nbsp;</p>\n<p>Table Name: @{pipeline().parameters.table_name}</p>\n<p><br></p>\n<p><br></p>\n<p>Run Status: @{pipeline().Pipeline}</p>",
+                            "Sensitivity": "",
+                            "Importance": "Normal"
+                        }
+                    }
+                }
+            }
+        ],
+        "concurrency": 1,
+        "parameters": {
+            "table_name": {
+                "type": "string",
+                "defaultValue": "Silver"
+            },
+            "Year": {
+                "type": "string",
+                "defaultValue": "2020"
+            },
+            "month": {
+                "type": "string",
+                "defaultValue": "month=01"
+            }
+        },
+        "variables": {
+            "month": {
+                "type": "String",
+                "defaultValue": "month=01"
+            }
+        },
+        "lastModifiedByObjectId": "503219d2-d73f-4358-899e-a81b66a45f6f",
+        "lastPublishTime": "2024-02-13T14:29:14Z"
+    }
+}
